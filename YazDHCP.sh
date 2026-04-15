@@ -13,7 +13,7 @@
 ##    Forked from https://github.com/jackyaz/YazDHCP    ##
 ##                                                      ##
 ##########################################################
-# Last Modified: 2026-Apr-11
+# Last Modified: 2026-Apr-15
 #---------------------------------------------------------
 
 #############################################
@@ -29,8 +29,8 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazDHCP"
-readonly SCRIPT_VERSION="v1.2.6"
-readonly SCRIPT_VERSTAG="26041104"
+readonly SCRIPT_VERSION="v1.2.7"
+readonly SCRIPT_VERSTAG="26041500"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -1522,7 +1522,7 @@ Auto_ServiceEvent()
 	local theScriptFilePath="/jffs/scripts/$SCRIPT_NAME"
 	case "$1" in
 		create)
-			if [ -f /jffs/scripts/service-event ]
+			if [ -s /jffs/scripts/service-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)"
 				STARTUPLINECOUNTEX="$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { \[ "$1" = "restart" \] && \[ "$2" = "wireless" \]; }; then { '"$theScriptFilePath"' service_event "$@" & }; fi # '"$SCRIPT_NAME" /jffs/scripts/service-event)"
@@ -1543,14 +1543,15 @@ Auto_ServiceEvent()
 				   echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { [ "$1" = "restart" ] && [ "$2" = "wireless" ]; }; then { '"$theScriptFilePath"' service_event "$@" & }; fi # '"$SCRIPT_NAME"
 				   echo
 				} > /jffs/scripts/service-event
-				chmod 0755 /jffs/scripts/service-event
 			fi
+			chmod 0755 /jffs/scripts/service-event
 		;;
 		delete)
-			if [ -f /jffs/scripts/service-event ]
+			if [ -s /jffs/scripts/service-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
 				fi
 			fi
@@ -1558,11 +1559,14 @@ Auto_ServiceEvent()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Auto_Startup()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/services-start ]
+			if [ -s /jffs/scripts/services-start ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
 				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME startup"' "$@" & # '"$SCRIPT_NAME" /jffs/scripts/services-start)"
@@ -1580,14 +1584,15 @@ Auto_Startup()
 				   echo "/jffs/scripts/$SCRIPT_NAME startup"' "$@" & # '"$SCRIPT_NAME"
 				   echo
 				} > /jffs/scripts/services-start
-				chmod 0755 /jffs/scripts/services-start
 			fi
+			chmod 0755 /jffs/scripts/services-start
 		;;
 		delete)
-			if [ -f /jffs/scripts/services-start ]
+			if [ -s /jffs/scripts/services-start ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
 			fi
@@ -2081,7 +2086,8 @@ Shortcut_Script()
 			fi
 		;;
 		delete)
-			if [ -f "/opt/bin/$SCRIPT_NAME" ]; then
+			if [ -f "/opt/bin/$SCRIPT_NAME" ]
+			then
 				rm -f /opt/bin/"$SCRIPT_NAME"
 			fi
 		;;
