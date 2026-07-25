@@ -13,7 +13,7 @@
 ##    Forked from https://github.com/jackyaz/YazDHCP    ##
 ##                                                      ##
 ##########################################################
-# Last Modified: 2026-Apr-15
+# Last Modified: 2026-Jul-24
 #---------------------------------------------------------
 
 #############################################
@@ -30,7 +30,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazDHCP"
 readonly SCRIPT_VERSION="v1.2.7"
-readonly SCRIPT_VERSTAG="26041500"
+readonly SCRIPT_VERSTAG="26072421"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -140,6 +140,12 @@ readonly YazDHCP_LEASEtag="DHCP_LEASE"
 readonly DHCP_LEASE_KEYN="dhcp_lease"
 readonly DHCP_LEASE_FILE="DHCP_Lease"
 readonly SCRIPT_DHCP_LEASE_CONF="${SCRIPT_DIR}/$DHCP_LEASE_FILE"
+
+readonly MENU_TREE_JS_FILE="/www/require/modules/menuTree.js"
+readonly LAN_DHCP_SERVER_WEBPAGE="Advanced_DHCP_Content.asp"
+readonly ORIGN_LAN_DHCP_SERVER_PAGE="/www/$LAN_DHCP_SERVER_WEBPAGE"
+readonly MOUNT_LAN_DHCP_SERVER_PAGE="${SCRIPT_DIR}/$LAN_DHCP_SERVER_WEBPAGE"
+readonly webPageLineTabStr="{url: \"${LAN_DHCP_SERVER_WEBPAGE}\", tabName: "
 
 ##----------------------------------------------##
 ## Added/Modified by Martinski W. [2023-Jun-16] ##
@@ -928,8 +934,7 @@ Update_Version()
 
 		if [ "$isupdate" != "false" ]
 		then
-			Update_File Advanced_DHCP_Content.asp
-
+			Update_File "$LAN_DHCP_SERVER_WEBPAGE"
 			Download_File "$SCRIPT_REPO/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
 			Print_Output true "$SCRIPT_NAME successfully updated" "$PASS"
 			[ -s "/jffs/scripts/$SCRIPT_NAME" ] && chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
@@ -952,7 +957,7 @@ Update_Version()
 	then
 		serverVer="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
 		Print_Output true "Downloading latest version ($serverVer) of $SCRIPT_NAME" "$PASS"
-		Update_File Advanced_DHCP_Content.asp
+		Update_File "$LAN_DHCP_SERVER_WEBPAGE"
 		Update_File shared-jy.tar.gz
 		Download_File "$SCRIPT_REPO/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
 		Print_Output true "$SCRIPT_NAME successfully updated" "$PASS"
@@ -991,7 +996,7 @@ ScriptUpdateFromAMTM()
 ##----------------------------------------##
 Update_File()
 {
-	if [ "$1" = "Advanced_DHCP_Content.asp" ]
+	if [ "$1" = "$LAN_DHCP_SERVER_WEBPAGE" ]
 	then
 		webUIupdateOK=true
 		local tmpfile="/tmp/$1"
@@ -2044,21 +2049,36 @@ Auto_DNSMASQ()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Sep-05] ##
+## Modified by Martinski W. [2026-Jul-24] ##
 ##----------------------------------------##
 Mount_WebUI()
 {
-	Print_Output true "Mounting WebUI tab for ${SCRIPT_NAME}..." "$PASS"
-	umount /www/Advanced_DHCP_Content.asp 2>/dev/null
-	if [ -s "$SCRIPT_DIR/Advanced_DHCP_Content.asp" ]
+	Print_Output true "Mounting WebUI page for ${SCRIPT_NAME}..." "$PASS"
+	if [ -s "$ORIGN_LAN_DHCP_SERVER_PAGE" ]
 	then
-		webUIupdateOK=true
-		mount -o bind "$SCRIPT_DIR/Advanced_DHCP_Content.asp" /www/Advanced_DHCP_Content.asp
-		Print_Output true "WebUI tab for $SCRIPT_NAME was mounted." "$PASS"
-		return 0
+		umount "$ORIGN_LAN_DHCP_SERVER_PAGE" 2>/dev/null
 	else
 		webUIupdateOK=false
-		Print_Output true "**ERROR**: WebUI file for $SCRIPT_NAME is NOT found." "$ERR"
+		Print_Output true "**ERROR**: WebUI file [$ORIGN_LAN_DHCP_SERVER_PAGE] is NOT found." "$CRIT"
+		return 1
+	fi
+	if [ -s "$MOUNT_LAN_DHCP_SERVER_PAGE" ]
+	then
+		mount -o bind "$MOUNT_LAN_DHCP_SERVER_PAGE" "$ORIGN_LAN_DHCP_SERVER_PAGE"
+		sleep 1
+		if [ "$(grep -c "$SCRIPT_NAME" "$ORIGN_LAN_DHCP_SERVER_PAGE")" -ge 8 ]
+		then
+			webUIupdateOK=true
+			Print_Output true "WebUI tab for $SCRIPT_NAME was mounted successfully." "$PASS"
+			return 0
+		else
+			webUIupdateOK=false
+            Print_Output true "**ERROR** Unable to mount $SCRIPT_NAME WebUI page." "$CRIT"
+			return 1
+		fi
+	else
+		webUIupdateOK=false
+		Print_Output true "**ERROR**: WebUI file for $SCRIPT_NAME is NOT found." "$CRIT"
 		return 1
 	fi
 }
@@ -2068,7 +2088,7 @@ Mount_WebUI()
 ##-------------------------------------##
 _CheckFor_WebGUI_Page_()
 {
-	if [ "$(grep -c 'YazDHCP' /www/Advanced_DHCP_Content.asp)" -ge 8 ]
+	if [ "$(grep -c "$SCRIPT_NAME" "$ORIGN_LAN_DHCP_SERVER_PAGE")" -ge 8 ]
 	then return 0
 	fi
 	Mount_WebUI
@@ -4633,7 +4653,7 @@ Menu_Install()
 	fi
 	printf "%s will back up DHCP IP address assignments from NVRAM during installation," "$SCRIPT_NAME"
 	printf "\nbut first you may wish to take screenshots of the following WebUI page:"
-	printf "\n\n${GRNct}%s://%s%s/Advanced_DHCP_Content.asp${CLEARct}\n" "$httpStr" "$mainLAN_IPaddr" "$portStr"
+	printf "\n\n${GRNct}%s://%s%s/${LAN_DHCP_SERVER_WEBPAGE}${CLEARct}\n" "$httpStr" "$mainLAN_IPaddr" "$portStr"
 	printf "\n${BOLD}If you wish to take screenshots, please do so now before the WebUI page\nis updated by %s${CLEARct}.\n" "$SCRIPT_NAME"
 	printf "\n${BOLD}Press the <Enter> key when you are ready to continue...${CLEARct}\n"
 	while true
@@ -4644,7 +4664,7 @@ Menu_Install()
 		esac
 	done
 
-	Update_File Advanced_DHCP_Content.asp
+	Update_File "$LAN_DHCP_SERVER_WEBPAGE"
 	Update_File shared-jy.tar.gz
 	Auto_Startup create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
@@ -4790,8 +4810,8 @@ Menu_Uninstall()
 	Auto_ServiceEvent delete 2>/dev/null
 	Auto_DNSMASQ delete
 	Shortcut_Script delete
-	umount /www/Advanced_DHCP_Content.asp 2>/dev/null
-	rm -f "$SCRIPT_DIR/Advanced_DHCP_Content.asp"
+	umount "$ORIGN_LAN_DHCP_SERVER_PAGE" 2>/dev/null
+	rm -f "$MOUNT_LAN_DHCP_SERVER_PAGE"
 	rm -f "$guestNetInfoJSfilePath" "$dhcpGuestNetConfigFPath"
 
 	# Maximum LEASE time in secs to store in NVRAM #
@@ -4831,11 +4851,11 @@ Menu_Uninstall()
 }
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Sep-05] ##
+## Modified by Martinski W. [2026-Jul-24] ##
 ##----------------------------------------##
 Check_Requirements()
 {
-	CHECKSFAILED="false"
+	local CHECKSFAILED=false
 
 	if [ "$(nvram get jffs2_scripts)" -ne 1 ]
 	then
@@ -4845,16 +4865,23 @@ Check_Requirements()
 	fi
 
 	if ! Firmware_Version_Check || \
-	   [ "$(FirmwareVersionNum "$fwInstalledBranchVer")" -lt "$(FirmwareVersionNum "3004.386.4")" ]
+	   [ "$(FirmwareVersionNum "$fwInstalledBranchVer")" -lt "$(FirmwareVersionNum '3004.386.4')" ]
 	then
+		CHECKSFAILED=true
 		Print_Output true "Unsupported firmware version detected" "$ERR"
 		Print_Output true "$SCRIPT_NAME requires Merlin F/W 3004.386.4 version (or later)" "$ERR"
-		CHECKSFAILED="true"
 	fi
 
-	if [ "$CHECKSFAILED" = "false" ]
-	then return 0
-	else return 1
+	if [ ! -s "$ORIGN_LAN_DHCP_SERVER_PAGE" ] || \
+	   ! grep -q "$webPageLineTabStr" "$MENU_TREE_JS_FILE"
+	then
+		CHECKSFAILED=true
+		Print_Output true "**ERROR**: WebUI file [$ORIGN_LAN_DHCP_SERVER_PAGE] is NOT found." "$CRIT"
+	fi
+
+	if "$CHECKSFAILED"
+	then return 1
+	else return 0
 	fi
 }
 
