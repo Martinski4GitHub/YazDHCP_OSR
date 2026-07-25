@@ -55,9 +55,9 @@ thead.collapsible-jquery {
 <script language="JavaScript" type="text/javascript" src="/base64.js"></script>
 <script>
 
-/**----------------------------------------**/
-/** Modified by Martinski W. [2025-Nov-01] **/
-/**----------------------------------------**/
+/**----------------------------**/
+/** Last Modified: 2026-Jul-25 **/
+/**----------------------------**/
 
 const actionScriptPrefix = "start_YazDHCP";
 
@@ -1489,29 +1489,70 @@ function GetVersionNumber(versiontype)
 	}
 }
 
-function GetCookie(cookiename,returntype){
+/**----------------------------------------------------------------**
+ ** Compatibility layer for the latest AsusWRT6 routers, such as
+ ** the GT-BE19000AI, where the previous global 'cookie' helper 
+ ** functions defined in the 'state.js' file are now removed in 
+ ** favour of using the "window.localStorage" property.
+ **----------------------------------------------------------------**/
+if (typeof window.cookie === "undefined" ||
+    typeof window.cookie.get !== "function" ||
+    typeof window.cookie.set !== "function")
+{
+    window.cookie = {
+        get: function (key) {
+            return window.localStorage.getItem(key);
+        },
+
+        /** In the previous 'cookie' function a 3rd argument was given for 'days' **/
+        /** Here, we ignore the value because there is no expiration date anymore **/
+        set: function (key, value, days) {
+            window.localStorage.setItem(key, String(value));
+        },
+
+        unset: function (key) {
+            window.localStorage.removeItem(key);
+        }
+    };
+
+    console.log("Installed localStorage compatibility for cookie API.");
+}
+
+function GetCookie(cookiename, returntype)
+{
 	var s;
-	if ((s = cookie.get("yazdhcp_"+cookiename)) != null){
-		return cookie.get("yazdhcp_"+cookiename);
-	}
-	else{
-		if(returntype == "string"){
-			return "";
+	if ((s = cookie.get('yazdhcp_' + cookiename)) !== null)
+	{
+		if (returntype === 'string')
+		{
+			return cookie.get('yazdhcp_' + cookiename);
 		}
-		else if(returntype == "number"){
+		else if (returntype === 'number')
+		{
+			return cookie.get('yazdhcp_' + cookiename) * 1;
+		}
+	}
+	else
+	{
+		if (returntype === 'string')
+		{
+			return '';
+		}
+		else if (returntype === 'number')
+		{
 			return 0;
 		}
 	}
 }
 
-function SetCookie(cookiename,cookievalue){
-	cookie.set("yazdhcp_"+cookiename, cookievalue, 31);
-}
+function SetCookie(cookiename, cookievalue)
+{ cookie.set('yazdhcp_' + cookiename, cookievalue, 31); }
 
-function AddEventHandlers(){
+function AddEventHandlers()
+{
 	$(".collapsible-jquery").click(function(){
 		$(this).siblings().toggle("fast",function(){
-			if($(this).css("display") == "none"){
+			if ($(this).css("display") == "none"){
 				SetCookie($(this).siblings()[0].id,"collapsed");
 			}
 			else{
@@ -1521,7 +1562,7 @@ function AddEventHandlers(){
 	});
 
 	$(".collapsible-jquery").each(function(index,element){
-		if(GetCookie($(this)[0].id,"string") == "collapsed"){
+		if (GetCookie($(this)[0].id,"string") == "collapsed"){
 			$(this).siblings().toggle(false);
 		}
 		else{
