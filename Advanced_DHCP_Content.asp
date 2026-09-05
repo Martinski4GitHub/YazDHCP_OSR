@@ -56,7 +56,7 @@ thead.collapsible-jquery {
 <script>
 
 /**----------------------------**/
-/** Last Modified: 2026-Jul-25 **/
+/** Last Modified: 2026-Sep-04 **/
 /**----------------------------**/
 
 const actionScriptPrefix = "start_YazDHCP";
@@ -1590,14 +1590,14 @@ function addRow_Group(maxLimit)
 		return false;
 	}
 
-	if (document.form.dhcp_staticmac_x_0.value == "")
+	if (document.form.dhcp_staticmac_x_0.value === "")
 	{
 		alert("The MAC Address field cannot be blank.");
 		document.form.dhcp_staticmac_x_0.focus();
 		document.form.dhcp_staticmac_x_0.select();
 		return false;
 	}
-	else if (document.form.dhcp_staticip_x_0.value == "")
+	else if (document.form.dhcp_staticip_x_0.value === "")
 	{
 		alert("The IP Address field cannot be blank.");
 		document.form.dhcp_staticip_x_0.focus();
@@ -1611,17 +1611,18 @@ function addRow_Group(maxLimit)
 		document.form.dhcp_hostname_x_0.select();
 		return false;
 	}
-	else if(check_macaddr(document.form.dhcp_staticmac_x_0, check_hwaddr_flag(document.form.dhcp_staticmac_x_0, 'inner')) == true &&
+	else if (check_macaddr(document.form.dhcp_staticmac_x_0, check_hwaddr_flag(document.form.dhcp_staticmac_x_0, 'inner')) == true &&
 	        validator.validIPForm(document.form.dhcp_staticip_x_0,0) == true &&
 	        validate_dhcp_range(document.form.dhcp_staticip_x_0) == true)
 	{
-		if(document.form.dhcp_dnsip_x_0.value != ""){
-			if(!validator.ipAddrFinal(document.form.dhcp_dnsip_x_0, 'dhcp_dns1_x')){
+		if (document.form.dhcp_dnsip_x_0.value != ""){
+			if (!validator.ipAddrFinal(document.form.dhcp_dnsip_x_0, 'dhcp_dns1_x')){
 				return false;
 			}
 		}
 
 		let match_flag = false, alertMsge;
+		let entryHOSTnme = document.form.dhcp_hostname_x_0.value;
 		let entryMACaddr = document.form.dhcp_staticmac_x_0.value.toUpperCase();
 		let entryIPaddr4 = document.form.dhcp_staticip_x_0.value;
 		let entryIPaddr3 = entryIPaddr4.split(".", 3).join(".");
@@ -1637,14 +1638,15 @@ function addRow_Group(maxLimit)
 			if (manually_dhcp_list_array.hasOwnProperty(key))
 			{
 				var exist_IP = key;
-				var exist_MAC = manually_dhcp_list_array[exist_IP].mac;
+				var exist_MACx = manually_dhcp_list_array[exist_IP].mac;
+				var exist_HOST = manually_dhcp_list_array[exist_IP].hostname;
 				var existIPaddr3 = exist_IP.split(".", 3).join(".");
 				var exist_IP_num = inet_network(exist_IP);
 
 				/** Do NOT allow duplicate 'MAC + IP' address assignments **/
-				if (entryMACaddr === exist_MAC && entryIPaddr4 === exist_IP)
+				if (entryMACaddr === exist_MACx && entryIPaddr4 === exist_IP)
 				{
-					alertMsge = `The client <b>${exist_MAC}</b> with IP address <b>${exist_IP}</b> already exists.`;
+					alertMsge = `The client <b>${exist_MACx}</b> with IP address <b>${exist_IP}</b> already exists.`;
 					document.form.dhcp_staticmac_x_0.focus();
 					document.form.dhcp_staticmac_x_0.select();
 					AlertMsgBox.ShowAlert (alertMsge);
@@ -1662,14 +1664,28 @@ function addRow_Group(maxLimit)
 					break;
 				}
 				/** Do NOT allow the same MAC address IF already found in the same subnet **/
-				if (entryMACaddr === exist_MAC &&
+				if (entryMACaddr === exist_MACx &&
 				    (entryIPaddr3 === existIPaddr3 ||
 				     ((exist_IP_num > lanSubnetHead && exist_IP_num < lanSubnetEndx) &&
 				      (entry_IP_Num > lanSubnetHead && entry_IP_Num < lanSubnetEndx))))
 				{
-					alertMsge = `The client <b>${exist_MAC}</b> already exists with another IP address <b>${exist_IP}</b> on the same subnet range.`;
+					alertMsge = `The client <b>${exist_MACx}</b> already exists with another IP address <b>${exist_IP}</b> on the same subnet range.`;
 					document.form.dhcp_staticmac_x_0.focus();
 					document.form.dhcp_staticmac_x_0.select();
+					AlertMsgBox.ShowAlert (alertMsge);
+					match_flag = true;
+					break;
+				}
+				/** Do NOT allow the same HOST name IF already found in the same subnet **/
+				if (entryHOSTnme.length > 0 && exist_HOST.length > 0 &&
+				    entryHOSTnme.toUpperCase() === exist_HOST.toUpperCase() &&
+				    (entryIPaddr3 === existIPaddr3 ||
+				     ((exist_IP_num > lanSubnetHead && exist_IP_num < lanSubnetEndx) &&
+				      (entry_IP_Num > lanSubnetHead && entry_IP_Num < lanSubnetEndx))))
+				{
+					alertMsge = `The client Hostname <b>${exist_HOST}</b> already exists with another IP address <b>${exist_IP}</b> on the same subnet range.`;
+					document.form.dhcp_hostname_x_0.focus();
+					document.form.dhcp_hostname_x_0.select();
 					AlertMsgBox.ShowAlert (alertMsge);
 					match_flag = true;
 					break;
